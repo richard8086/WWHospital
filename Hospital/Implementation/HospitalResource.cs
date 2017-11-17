@@ -4,6 +4,7 @@ using System.Linq;
 using System.Web;
 using Hospital.Models;
 using System.Diagnostics;
+using Hospital.Interfaces;
 
 namespace Hospital.Implementation
 {
@@ -83,16 +84,33 @@ namespace Hospital.Implementation
         /// <summary>
         /// Constructor
         /// </summary>
-        public HospitalResource()
+        public HospitalResource(IUtility utility, IAppointmentScheduler scheduler)
         {
+            _utility = utility;
+            _schedulerSeed = scheduler;
+
+            _machines = new Dictionary<string, TreatmentMachine>()
+            {
+                { "Elekta", new TreatmentMachine {Name="Elekta", Capability = TreatmentMachine.MachineCapability.Advanced}},
+                { "Varian", new TreatmentMachine {Name="Varian", Capability = TreatmentMachine.MachineCapability.Advanced}},
+                { "MM50", new TreatmentMachine {Name="MM50", Capability = TreatmentMachine.MachineCapability.Simple}}
+            };
+
             _rooms = new Dictionary<string, TreatmentRoom>()
             {
-                { "One", new TreatmentRoom {Name="One", TreatmentMachine =_machines["Elekta"]}},
-                { "Two", new TreatmentRoom {Name="Two", TreatmentMachine =_machines["Varian"]}},
-                { "Three", new TreatmentRoom {Name="Three", TreatmentMachine =_machines["MM50"]}},
-                { "Four", new TreatmentRoom {Name="Four"}},
-                { "Five", new TreatmentRoom {Name="Five"}}
+                { "One", new TreatmentRoom(_schedulerSeed.Create()) {Name="One", TreatmentMachine =_machines["Elekta"]}},
+                { "Two", new TreatmentRoom(_schedulerSeed.Create()) {Name="Two", TreatmentMachine =_machines["Varian"]}},
+                { "Three", new TreatmentRoom (_schedulerSeed.Create()){Name="Three", TreatmentMachine =_machines["MM50"]}},
+                { "Four", new TreatmentRoom(_schedulerSeed.Create()) {Name="Four"}},
+                { "Five", new TreatmentRoom(_schedulerSeed.Create()) {Name="Five"}}
             };
+
+             _doctors = new Dictionary<string, Doctor>()
+            {
+                { "John", new Doctor(_schedulerSeed.Create()) {Name="John", Roles = { Doctor.Role.Oncologist} }},
+                { "Anna", new Doctor(_schedulerSeed.Create()) {Name="Anna", Roles = { Doctor.Role.GeneralPractitioner} }},
+                { "Peter", new Doctor(_schedulerSeed.Create()) {Name="Peter", Roles = { Doctor.Role.Oncologist, Doctor.Role.GeneralPractitioner} }},
+            };            
         }
 
         /// <summary>
@@ -114,7 +132,7 @@ namespace Hospital.Implementation
                 {
                     if (d.Value.Roles.Contains(Doctor.Role.Oncologist))
                     {
-                        MergeIntervalList(doctorIntervalList, d.Value.Scheduler.GetAvailableIntervals());
+                        _utility.MergeIntervalList(doctorIntervalList, d.Value.Scheduler.GetAvailableIntervals());
                     }
                 }
 
@@ -125,7 +143,7 @@ namespace Hospital.Implementation
                         if (r.Value.TreatmentMachine != null &&
                             r.Value.TreatmentMachine.Capability == TreatmentMachine.MachineCapability.Advanced)
                         {
-                            MergeIntervalList(roomIntervalList, r.Value.Scheduler.GetAvailableIntervals());
+                            _utility.MergeIntervalList(roomIntervalList, r.Value.Scheduler.GetAvailableIntervals());
                         }
                     }
                 }
@@ -135,7 +153,7 @@ namespace Hospital.Implementation
                     {
                         if (r.Value.TreatmentMachine != null)
                         {
-                            MergeIntervalList(roomIntervalList, r.Value.Scheduler.GetAvailableIntervals());
+                            _utility.MergeIntervalList(roomIntervalList, r.Value.Scheduler.GetAvailableIntervals());
                         }
                     }
                 }
@@ -146,37 +164,38 @@ namespace Hospital.Implementation
                 {
                     if (d.Value.Roles.Contains(Doctor.Role.GeneralPractitioner))
                     {
-                        MergeIntervalList(doctorIntervalList, d.Value.Scheduler.GetAvailableIntervals());
+                        _utility.MergeIntervalList(doctorIntervalList, d.Value.Scheduler.GetAvailableIntervals());
                     }
                 }
 
                 foreach (var r in _rooms)
                 {
-                    MergeIntervalList(roomIntervalList, r.Value.Scheduler.GetAvailableIntervals());                    
+                    _utility.MergeIntervalList(roomIntervalList, r.Value.Scheduler.GetAvailableIntervals());                    
                 }
             }
 
             // retrieve the earliest time
-            var appointment = BookTime(doctorIntervalList, roomIntervalList);
+            var appointment = _utility.FindFirstOverlappingDate(doctorIntervalList, roomIntervalList);
+            Debug.Assert(appointment.Item1);
 
             // book the doctor
-            var doctor = appointment.Item2 as Doctor;
+            var doctor = appointment.Item3 as Doctor;
             Debug.Assert(doctor != null);
-            bool bookedDoctor = doctor.Scheduler.Book(appointment.Item1);
+            bool bookedDoctor = doctor.Scheduler.Book(appointment.Item2);
             Debug.Assert(bookedDoctor);
 
             // book the room
-            var room = appointment.Item3 as TreatmentRoom;
+            var room = appointment.Item4 as TreatmentRoom;
             Debug.Assert(room != null);
-            bool bookedRoom = room.Scheduler.Book(appointment.Item1);
+            bool bookedRoom = room.Scheduler.Book(appointment.Item2);
             Debug.Assert(bookedRoom);
 
             // set the patient appointment info
-            p.SetAppointment(appointment.Item1, doctor.Name, room.Name);
+            p.SetAppointment(appointment.Item2, doctor.Name, room.Name);
 
             // add the consulation to the list
-            _consultations.Add( new Tuple<DateTime, string>(appointment.Item1, p.Name), 
-                                new Consultation { Patient = p, Doctor = doctor, TreatmentRoom = room, AppointmentDate = appointment.Item1 });
+            _consultations.Add( new Tuple<DateTime, string>(appointment.Item2, p.Name), 
+                                new Consultation { Patient = p, Doctor = doctor, TreatmentRoom = room, AppointmentDate = appointment.Item2 });
 
         }
 
@@ -196,91 +215,19 @@ namespace Hospital.Implementation
             }
         }
 
-        /// <summary>
-        /// merge the sorted addedlist to the sorted base list. The two lists are sorted on ascending order based on start date. o(n), n being the combined list size
-        /// </summary>
-        /// <param name="baseList"></param>
-        /// <param name="addedList"></param>
-        private void MergeIntervalList(LinkedList<Tuple<DateRange, object>> baseList, LinkedList<Tuple<DateRange, object>> addedList)
-        {
-            var baseNode = baseList.First;
-            var addedNode = addedList.First;
-
-            // merge
-            while (addedNode != null && baseNode != null)
-            {
-                if (baseNode.Value.Item1.CompareTo(addedNode.Value.Item1) > 0)
-                {
-                    baseList.AddBefore(baseNode, addedNode.Value);
-                    addedNode = addedNode.Next;
-                }
-                else
-                {
-                    baseNode = baseNode.Next;
-                }
-            }
-
-            // add the remaining nodes
-            while (addedNode != null)
-            {
-                baseList.AddLast(addedNode.Value);
-                addedNode = addedNode.Next;
-            }
-        }
-
-        /// <summary>
-        /// Find the earliest DateRange that overlaps and return the earliest date
-        /// </summary>
-        /// <param name="list1">sorted list</param>
-        /// <param name="list2">sorted list</param>
-        /// <returns>earliest date that the two interval lists overlap</returns>
-        private Tuple<Date, object, object> BookTime(LinkedList<Tuple<DateRange, object>> list1, LinkedList<Tuple<DateRange, object>> list2)
-        {
-            var result = new Tuple<Date, object, object>(DateTime.MinValue, null, null);
-
-            var node1 = list1.First;
-            var node2 = list2.First;
-            while (node1 != null && node2 != null)
-            {
-                var overlap = node1.Value.Item1.Overlap(node2.Value.Item1);
-                if (overlap.Item1)
-                {
-                    return new Tuple<Date, object, object>(overlap.Item2, node1.Value.Item2, node2.Value.Item2);
-                }
-
-                if (node1.Value.Item1.CompareTo(node2.Value.Item1) < 0)
-                {
-                    node1 = node1.Next;
-                }
-                else
-                {
-                    Debug.Assert(node1.Value.Item1.CompareTo(node2.Value.Item1) > 0);
-                    node2 = node2.Next;
-                }
-            }
-
-            return new Tuple<Date, object, object>(DateTime.MaxValue, null, null);
-        }
-
         private Dictionary<string, Patient> _patients = new Dictionary<string, Patient>();
 
-        private Dictionary<string, Doctor> _doctors = new Dictionary<string, Doctor>()
-        {
-            { "John", new Doctor {Name="John", Roles = { Doctor.Role.Oncologist} }},
-            { "Anna", new Doctor {Name="Anna", Roles = { Doctor.Role.GeneralPractitioner} }},
-            { "Peter", new Doctor {Name="Peter", Roles = { Doctor.Role.Oncologist, Doctor.Role.GeneralPractitioner} }},
-        };
+        private Dictionary<string, Doctor> _doctors;
 
-        private Dictionary<string, TreatmentMachine> _machines = new Dictionary<string, TreatmentMachine>()
-        {
-            { "Elekta", new TreatmentMachine {Name="Elekta", Capability = TreatmentMachine.MachineCapability.Advanced}},
-            { "Varian", new TreatmentMachine {Name="Varian", Capability = TreatmentMachine.MachineCapability.Advanced}},
-            { "MM50", new TreatmentMachine {Name="MM50", Capability = TreatmentMachine.MachineCapability.Simple}}
-        };
+        private Dictionary<string, TreatmentMachine> _machines;
 
-        private Dictionary<string, TreatmentRoom> _rooms = new Dictionary<string, TreatmentRoom>();
+        private Dictionary<string, TreatmentRoom> _rooms;
 
         private SortedDictionary<Tuple<DateTime, string>, Consultation> _consultations = new SortedDictionary<Tuple<DateTime, string>, Consultation>();
+
+        private IUtility _utility;
+
+        private IAppointmentScheduler _schedulerSeed;
 
     }
 }

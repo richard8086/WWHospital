@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using Hospital.Implementation;
+using Hospital.Interfaces;
+
 
 namespace Hospital.App_Start
 {
@@ -28,6 +30,8 @@ namespace Hospital.App_Start
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
             container.Bind<IHospitalResource>().To<HospitalResource>().InSingletonScope();
+            container.Bind<IUtility>().To<Utility>();
+            container.Bind<IAppointmentScheduler>().To<AppointmentScheduler>();
         }
 
     }

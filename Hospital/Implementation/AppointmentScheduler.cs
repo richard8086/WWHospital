@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Web;
+using Hospital.Interfaces;
+using Hospital.Models;
 
 namespace Hospital.Implementation
 {
@@ -181,6 +183,15 @@ namespace Hospital.Implementation
 
             // add to the existing list
             _existing.Add(date);
+        }
+
+        /// <summary>
+        /// Create a new instance
+        /// </summary>
+        /// <returns></returns>
+        IAppointmentScheduler IAppointmentScheduler.Create()
+        {
+            return new AppointmentScheduler();
         }
 
         /// <summary>

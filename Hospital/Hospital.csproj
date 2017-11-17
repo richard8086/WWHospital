@@ -182,9 +182,11 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Implementation\AppointmentScheduler.cs" />
-    <Compile Include="Implementation\Date.cs" />
-    <Compile Include="Implementation\DateRange.cs" />
-    <Compile Include="Implementation\IAppointmentScheduler.cs" />
+    <Compile Include="Models\Date.cs" />
+    <Compile Include="Models\DateRange.cs" />
+    <Compile Include="Interfaces\IAppointmentScheduler.cs" />
+    <Compile Include="Interfaces\IUtility.cs" />
+    <Compile Include="Implementation\Utility.cs" />
     <Compile Include="Models\Consultation.cs" />
     <Compile Include="Models\Doctor.cs" />
     <Compile Include="Models\Patient.cs" />
@@ -192,7 +194,7 @@
     <Compile Include="Models\TreatmentRoom.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Implementation\HospitalResource.cs" />
-    <Compile Include="Implementation\IHospitalResource.cs" />
+    <Compile Include="Interfaces\IHospitalResource.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Areas\HelpPage\HelpPage.css" />

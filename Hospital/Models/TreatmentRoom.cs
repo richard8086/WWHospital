@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
+using Hospital.Interfaces;
 
 namespace Hospital.Models
 {
@@ -22,11 +23,12 @@ namespace Hospital.Models
         [JsonIgnore]
         internal IAppointmentScheduler Scheduler { get { return _scheduler; } }
 
-        public TreatmentRoom()
+        public TreatmentRoom(IAppointmentScheduler scheduler)
         {
+            _scheduler = scheduler;
             _scheduler.Initialize(this);
         }
 
-        private IAppointmentScheduler _scheduler = new AppointmentScheduler();
+        private IAppointmentScheduler _scheduler;
     }
 }

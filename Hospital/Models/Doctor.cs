@@ -5,6 +5,8 @@ using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Hospital.Implementation;
+using Hospital.Interfaces;
+
 
 namespace Hospital.Models
 {
@@ -30,12 +32,13 @@ namespace Hospital.Models
         [JsonIgnore]
         internal IAppointmentScheduler Scheduler { get { return _scheduler; } }
 
-        public Doctor()
+        public Doctor(IAppointmentScheduler scheduler)
         {
+            _scheduler = scheduler;
             _scheduler.Initialize(this);
             Roles = new HashSet<Role>();
         }
 
-        private IAppointmentScheduler _scheduler = new AppointmentScheduler();
+        private IAppointmentScheduler _scheduler;
     }
 }

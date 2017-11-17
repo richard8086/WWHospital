@@ -1,6 +1,8 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Hospital.Implementation;
+using Hospital.Models;
+using Hospital.Interfaces;
 
 namespace Hospital.Tests.Implementation
 {

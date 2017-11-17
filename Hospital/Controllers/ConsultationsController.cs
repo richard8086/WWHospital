@@ -1,4 +1,4 @@
-﻿using Hospital.Implementation;
+﻿using Hospital.Interfaces;
 using Hospital.Models;
 using System;
 using System.Collections.Generic;

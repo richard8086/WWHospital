@@ -1,6 +1,8 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Hospital.Implementation;
+using Hospital.Models;
+using Hospital.Interfaces;
 
 namespace Hospital.Tests.Implementation
 {
@@ -121,6 +123,13 @@ namespace Hospital.Tests.Implementation
             Assert.IsTrue(avail2.First != null);
             Assert.IsTrue(avail2.First.Next == null);
             Assert.IsTrue(avail2.First.Value.Item1.CompareTo(new DateRange(day1, DateTime.MaxValue)) == 0);
+        }
+
+        [TestMethod]
+        public void TestCreate()
+        {
+            IAppointmentScheduler scheduler = new AppointmentScheduler();
+            Assert.AreNotEqual(scheduler, scheduler.Create());
         }
     }
 }

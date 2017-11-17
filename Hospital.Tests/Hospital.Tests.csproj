@@ -97,6 +97,7 @@
     <Compile Include="Implementation\DateRangeTest.cs" />
     <Compile Include="Implementation\SchedulerTest.cs" />
     <Compile Include="Implementation\HospitalResourceTest.cs" />
+    <Compile Include="Implementation\UtilityTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

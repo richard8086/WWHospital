@@ -1,5 +1,5 @@
 ﻿using Hospital.Models;
-using Hospital.Implementation;
+using Hospital.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;

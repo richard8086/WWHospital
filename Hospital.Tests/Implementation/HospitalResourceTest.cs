@@ -9,6 +9,8 @@ namespace Hospital.Tests.Implementation
         [TestMethod]
         public void TestMethod1()
         {
+            // not implemented yet due to time constraint
+            // need Mocking framework
         }
     }
 }

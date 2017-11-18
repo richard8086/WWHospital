@@ -118,6 +118,8 @@ namespace Hospital.Implementation
         /// <returns>Sorted on ascending order date ranges plus user object </returns>
         LinkedList<Tuple<DateRange, object>> IAppointmentScheduler.GetAvailableIntervals()
         {
+            TrimPastInterval(DateTime.Now + TimeSpan.FromDays(1));
+
             LinkedList<Tuple<DateRange, object>> list = new LinkedList<Tuple<DateRange, object>>();
 
             foreach (var range in _avail)
@@ -144,6 +146,15 @@ namespace Hospital.Implementation
         }
 
         /// <summary>
+        /// Create a new instance
+        /// </summary>
+        /// <returns></returns>
+        IAppointmentScheduler IAppointmentScheduler.Create()
+        {
+            return new AppointmentScheduler();
+        }
+
+        /// <summary>
         /// Constructor
         /// </summary>
         public AppointmentScheduler()
@@ -152,6 +163,34 @@ namespace Hospital.Implementation
             _avail.AddFirst(new DateRange(DateTime.Now + TimeSpan.FromDays(1), DateTime.MaxValue));
         }
 
+        /// <summary>
+        /// Trim the past date
+        /// </summary>
+        /// <param name="date"></param>
+        public void TrimPastInterval(Date date)
+        {
+            var current = _avail.First;
+            // skip the range's start date less than the date
+            while (current != null)
+            {
+                if (current.Value.Start.Value >= date.Value)
+                {
+                    break;
+                }
+
+                if (date.Value <= current.Value.End.Value)
+                {
+                    var value = current.Value;
+                    value.Start = date;
+                    current.Value = value;
+                    break;
+                }
+
+                var previous = current;
+                current = current.Next;
+                _avail.Remove(previous);
+            }
+        }
         /// <summary>
         /// Add the date to existing the appointment list
         /// </summary>
@@ -185,14 +224,8 @@ namespace Hospital.Implementation
             _existing.Add(date);
         }
 
-        /// <summary>
-        /// Create a new instance
-        /// </summary>
-        /// <returns></returns>
-        IAppointmentScheduler IAppointmentScheduler.Create()
-        {
-            return new AppointmentScheduler();
-        }
+
+
 
         /// <summary>
         /// Sorted available date ranges

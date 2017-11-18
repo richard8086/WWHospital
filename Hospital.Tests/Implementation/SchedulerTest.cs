@@ -131,5 +131,81 @@ namespace Hospital.Tests.Implementation
             IAppointmentScheduler scheduler = new AppointmentScheduler();
             Assert.AreNotEqual(scheduler, scheduler.Create());
         }
+
+        [TestMethod]
+        public void TestTrim()
+        {
+            IAppointmentScheduler scheduler = new AppointmentScheduler();
+            DateTime day1 = DateTime.Now + TimeSpan.FromDays(1);
+            Assert.IsTrue(scheduler.Book(day1));
+            DateTime day3 = DateTime.Now + TimeSpan.FromDays(3);
+            Assert.IsTrue(scheduler.Book(day3));
+            DateTime day5 = DateTime.Now + TimeSpan.FromDays(5);
+            Assert.IsTrue(scheduler.Book(day5));
+            DateTime day7 = DateTime.Now + TimeSpan.FromDays(7);
+            Assert.IsTrue(scheduler.Book(day7));
+
+            var avail = scheduler.GetAvailableIntervals();
+            Assert.IsTrue(avail.Count == 4);
+
+            var instance = scheduler as AppointmentScheduler;
+            instance.TrimPastInterval(day1);
+            avail = scheduler.GetAvailableIntervals();
+            Assert.IsTrue(avail.Count == 4);
+
+            instance.TrimPastInterval(day1 + TimeSpan.FromDays(1));
+            avail = scheduler.GetAvailableIntervals();
+            Assert.IsTrue(avail.Count == 4);
+
+            instance.TrimPastInterval(day3);
+            avail = scheduler.GetAvailableIntervals();
+            Assert.IsTrue(avail.Count == 3);
+        }
+
+        [TestMethod]
+        public void TestTrim1()
+        {
+            IAppointmentScheduler scheduler = new AppointmentScheduler();
+
+            DateTime day5 = DateTime.Now + TimeSpan.FromDays(5);
+            Assert.IsTrue(scheduler.Book(day5));
+            DateTime day10 = DateTime.Now + TimeSpan.FromDays(10);
+            Assert.IsTrue(scheduler.Book(day10));
+
+            var avail = scheduler.GetAvailableIntervals();
+            Assert.IsTrue(avail.Count == 3);
+
+            var instance = scheduler as AppointmentScheduler;
+            Date day3 = DateTime.Now + TimeSpan.FromDays(3);
+            instance.TrimPastInterval(day3);
+            avail = scheduler.GetAvailableIntervals();
+            Assert.IsTrue(avail.Count == 3);
+            Assert.IsTrue(avail.First.Value.Item1.Start == day3);
+
+            instance.TrimPastInterval(day5);
+            avail = scheduler.GetAvailableIntervals();
+            Assert.IsTrue(avail.Count == 2);
+            Date day6 = DateTime.Now + TimeSpan.FromDays(6);
+            Assert.IsTrue(avail.First.Value.Item1.Start == day6);
+
+            Date day9 = DateTime.Now + TimeSpan.FromDays(9);
+            instance.TrimPastInterval(day9);
+            avail = scheduler.GetAvailableIntervals();
+            Assert.IsTrue(avail.Count == 2);
+            Assert.IsTrue(avail.First.Value.Item1.Start == day9);
+
+            Date day11 = DateTime.Now + TimeSpan.FromDays(11);
+            instance.TrimPastInterval(day10);
+            avail = scheduler.GetAvailableIntervals();
+            Assert.IsTrue(avail.Count == 1);
+            Assert.IsTrue(avail.First.Value.Item1.Start == day11);
+
+            Date day100 = DateTime.Now + TimeSpan.FromDays(100);
+            instance.TrimPastInterval(day100);
+            avail = scheduler.GetAvailableIntervals();
+            Assert.IsTrue(avail.Count == 1);
+            Assert.IsTrue(avail.First.Value.Item1.Start == day100);
+
+        }
     }
 }

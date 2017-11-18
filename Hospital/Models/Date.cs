@@ -5,7 +5,7 @@ using System.Web;
 
 namespace Hospital.Models
 {
-    public struct Date : IComparable<Date>
+    public struct Date : IComparable<Date>, IEquatable<Date>
     {
         public DateTime Value
         {
@@ -23,6 +23,34 @@ namespace Hospital.Models
             return _date.CompareTo(other._date);
         }
 
+        public bool Equals(Date other)
+        {
+            return CompareTo(other) == 0;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null || GetType() != obj.GetType())
+                return false;
+
+            var b2 = (Date)obj;
+            return CompareTo(b2) == 0;
+        }
+
+        public override int GetHashCode()
+        {
+            return _date.GetHashCode();
+        }
+
+        public static bool operator ==(Date obj1, Date obj2)
+        {
+            return obj1.Equals(obj2);
+        }
+
+        public static bool operator !=(Date obj1, Date obj2)
+        {
+            return !obj1.Equals(obj2);
+        }
         // User-defined conversion from Digit to double
         public static implicit operator DateTime(Date d)
         {
